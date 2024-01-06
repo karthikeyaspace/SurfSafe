@@ -14,8 +14,9 @@ redirect = "127.0.0.1"
 hosts_path = 'C:\\Windows\\System32\\drivers\\etc\\hosts'
 backup_path = 'C:\\Windows\\System32\\drivers\\etc\\hosts.backup'
 delay = 3
-global blocked_sites
+global blocked_sites,visited_sites
 blocked_sites = []
+visited_sites = []
 
 
 def chrome():
@@ -66,6 +67,7 @@ def block(curr_url):
                     if url not in hosts_content:
                         hostfile.write(redirect + ' ' + url + '\n')
                         print(url, 'blocked')
+                blocked_sites.append(url)
             else:
                 pass
     except PermissionError:
@@ -73,7 +75,6 @@ def block(curr_url):
     except Exception as e:
         print(e)
     finally:
-        blocked_sites.append(url)
         active = gw.getActiveWindow()
         if active and 'Google Chrome' in active.title:
             time.sleep(2)
@@ -81,7 +82,6 @@ def block(curr_url):
 
 
 # to execute only reset() in cmd -> python -c "from app import reset; reset()"
-    
 def reset():
     try:     
         with open(backup_path, 'r') as backup_file:
@@ -103,6 +103,7 @@ def stop():
     global running
     running = False
 
+
 def main():
     global running
     running = True
@@ -113,6 +114,9 @@ def main():
                 is_safe = check_url(url)
                 if is_safe:
                     print(url," is safe to visit")
+                    global visited_sites
+                    if url not in visited_sites:
+                        visited_sites.append(url)
                 else:
                     block(url)
             time.sleep(delay)
@@ -124,6 +128,13 @@ def start_main_thread():
     main_thread = threading.Thread(target=main)
     main_thread.start()
 
+def exit(window):
+    stop()
+    print([i for i in visited_sites if i not in blocked_sites])
+    reset()
+    messagebox.showinfo("SurfSafe", "Thank you for using SurfSafe")
+    time.sleep(2)
+    window.destroy()
 
 def window():
     window = tk.Tk()
@@ -154,7 +165,7 @@ def window():
     button_clear = tk.Button(window, text="Clear", bg='black', fg='white' ,font=("Verdana", 15), command=lambda:entry.delete(0, tk.END))
     button_clear.place(x='380', y='260')
 
-    button_exit = tk.Button(window, text="Exit",width=8, bg='red', fg='white', font=("Verdana", 15), command=window.destroy)
+    button_exit = tk.Button(window, text="Exit",width=8, bg='red', fg='white', font=("Verdana", 15), command=lambda:exit(window))
     button_exit.place(x='200', y='370')
     window.mainloop()
 
